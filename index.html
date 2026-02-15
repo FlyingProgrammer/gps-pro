@@ -85,7 +85,7 @@
         cursor: pointer;
         border: 1px solid rgba(255, 255, 255, 0.1);
         transition: background 0.2s;
-         opacity: 0;
+        opacity: 0;
       }
       .menu-btn:active {
         background: rgba(255, 255, 255, 0.3);
@@ -140,7 +140,7 @@
         align-items: center;
         width: 100%;
         position: relative;
-        top: -20px;
+        top: -40px;
       }
       .gauge-wrapper {
         position: relative;
@@ -449,7 +449,7 @@
       </div>
 
       <div class="gauge-section">
-        <div class="gauge-wrapper" id="compassWrapper" onclick="initCompass()">
+        <div class="gauge-wrapper" id="compassWrapper">
           <div class="compass-ring" id="compass">
             <div class="compass-n"></div>
             <div class="compass-s"></div>
@@ -466,7 +466,7 @@
             </div>
           </div>
 
-          <div class="perm-hint" id="permHint">点击表盘启用指南针</div>
+          <div class="perm-hint" id="permHint">正在启用指南针...</div>
         </div>
       </div>
 
@@ -535,10 +535,6 @@
       let accumulatedRotation = 0;
       let lastHeading = 0;
 
-      if (window.DeviceOrientationEvent) {
-        window.addEventListener("deviceorientation", handleOrientation, true);
-      }
-
       const isIOS =
         typeof DeviceOrientationEvent !== "undefined" &&
         typeof DeviceOrientationEvent.requestPermission === "function";
@@ -557,12 +553,24 @@
                 isCompassEnabled = true;
                 elPermHint.classList.remove("show");
               } else {
-                alert("需要罗盘权限才能显示方向");
+                elPermHint.textContent = "需要罗盘权限才能显示方向";
               }
             })
             .catch(console.error);
+        } else if (!isIOS) {
+          // 非 iOS 设备直接启用
+          if (window.DeviceOrientationEvent) {
+            window.addEventListener("deviceorientation", handleOrientation, true);
+            isCompassEnabled = true;
+            elPermHint.classList.remove("show");
+          } else {
+            elPermHint.textContent = "设备不支持指南针";
+          }
         }
       }
+
+      // 自动初始化指南针
+      initCompass();
 
       function handleOrientation(e) {
         let heading = 0;
@@ -767,12 +775,16 @@
       }
 
       function applyThemeStyles(theme) {
+        // 更新 CSS 变量
         app.style.setProperty("--bg-grad", theme.bg);
         app.style.setProperty("--circle-grad", theme.circle);
         app.style.setProperty(
           "--glow-color",
           theme.glow || "rgba(255,255,255,0.3)",
         );
+
+        // 直接更新背景属性，确保在 PWA 模式下也能正确显示
+        app.style.background = theme.bg;
 
         if (theme.light) {
           app.style.setProperty("--text-main", "#2d3436");
