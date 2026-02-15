@@ -541,6 +541,9 @@
       if (isIOS) elPermHint.classList.add("show");
 
       function initCompass() {
+        elPermHint.textContent = "正在启用指南针...";
+        elPermHint.classList.add("show");
+        
         if (isIOS && !isCompassEnabled) {
           DeviceOrientationEvent.requestPermission()
             .then((response) => {
@@ -556,7 +559,10 @@
                 elPermHint.textContent = "需要罗盘权限才能显示方向";
               }
             })
-            .catch(console.error);
+            .catch((error) => {
+              console.error("指南针权限请求失败:", error);
+              elPermHint.textContent = "指南针初始化失败";
+            });
         } else if (!isIOS) {
           // 非 iOS 设备直接启用
           if (window.DeviceOrientationEvent) {
@@ -571,6 +577,13 @@
 
       // 自动初始化指南针
       initCompass();
+
+      // 为了确保指南针能够正常工作，添加一个重试机制
+      setTimeout(() => {
+        if (!isCompassEnabled && window.DeviceOrientationEvent) {
+          initCompass();
+        }
+      }, 1000);
 
       function handleOrientation(e) {
         let heading = 0;
@@ -785,6 +798,29 @@
 
         // 直接更新背景属性，确保在 PWA 模式下也能正确显示
         app.style.background = theme.bg;
+
+        // 更新状态栏颜色
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeColorMeta) {
+          // 从背景渐变中提取主色调
+          const bgValue = theme.bg;
+          let mainColor = "#1cb5c2";
+          
+          // 尝试从渐变中提取第一个颜色
+          if (bgValue.includes("linear-gradient")) {
+            const colorMatch = bgValue.match(/rgba?\([^)]+\)|#[0-9a-fA-F]{3,6}/);
+            if (colorMatch) {
+              mainColor = colorMatch[0];
+            }
+          } else if (bgValue.startsWith("#")) {
+            mainColor = bgValue;
+          }
+          
+          themeColorMeta.content = mainColor;
+          
+          // 同时更新 document.body.style.backgroundColor 作为后备
+          document.body.style.backgroundColor = mainColor;
+        }
 
         if (theme.light) {
           app.style.setProperty("--text-main", "#2d3436");
