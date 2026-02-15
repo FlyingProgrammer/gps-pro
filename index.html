@@ -1,1063 +1,1123 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-    />
-    <meta name="theme-color" content="#1cb5c2" />
-    <title>GPS Altimeter Pro</title>
-    <link rel="manifest" href="manifest.json" />
-    <link rel="apple-touch-icon" href="icon-192.png" />
-    <style>
-      /* ================== 基础架构 ================== */
-      :root {
-        /* 动态变量 */
-        --bg-grad: linear-gradient(
-          180deg,
+
+<head>
+  <meta charset="UTF-8" />
+  <!-- 新增 iOS 状态栏样式适配 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="#1cb5c2" id="apple-status-bar-style">
+  <!-- 确保 PWA 模式下的状态栏行为 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1cb5c2" />
+  <title>GPS Altimeter Pro</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    /* ================== 基础架构 ================== */
+    :root {
+      /* 动态变量 */
+      --bg-grad: linear-gradient(180deg,
           #1cb5c2 0%,
           #1cb5c2 20%,
           #b5a454 60%,
-          #c94028 100%
-        );
-        --circle-grad: linear-gradient(135deg, #f57f44, #e3304a);
-        --glow-color: rgba(227, 48, 74, 0.4);
+          #c94028 100%);
+      --circle-grad: linear-gradient(135deg, #f57f44, #e3304a);
+      --glow-color: rgba(227, 48, 74, 0.4);
 
-        --text-main: #ffffff;
-        --text-sec: rgba(255, 255, 255, 0.75);
-        --glass-bg: rgba(255, 255, 255, 0.12);
-        --glass-border: rgba(255, 255, 255, 0.2);
-        --compass-n: #d93035;
-        --compass-s: #e0d0a0;
-      }
+      --text-main: #ffffff;
+      --text-sec: rgba(255, 255, 255, 0.75);
+      --glass-bg: rgba(255, 255, 255, 0.12);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --compass-n: #d93035;
+      --compass-s: #e0d0a0;
+    }
 
-      body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        background-color: #000;
-        margin: 0;
-        font-family:
-          -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
-          sans-serif;
-        overflow: hidden;
-        overscroll-behavior: none;
-        -webkit-user-select: none;
-        user-select: none;
-      }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #000;
+      margin: 0;
+      font-family:
+        -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+        sans-serif;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
 
-      .app-container {
-        width: 100%;
-        max-width: 420px;
-        height: 100vh;
-        background: var(--bg-grad);
-        position: relative;
-        box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
-        overflow: hidden;
-        color: var(--text-main);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 50px 0 0 0;
-        box-sizing: border-box;
-        /* 增加背景过渡时间，让自动变色更柔和 */
-        transition:
-          background 3s ease,
-          color 1s ease;
-      }
+    .app-container {
+      width: 100%;
+      max-width: 420px;
+      height: 100vh;
+      background: var(--bg-grad);
+      position: relative;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px 0 0 0;
+      box-sizing: border-box;
+      /* 增加背景过渡时间，让自动变色更柔和 */
+      transition:
+        background 3s ease,
+        color 1s ease;
+    }
 
-      /* 菜单按钮 */
-      .menu-btn {
-        position: absolute;
-        top: max(20px, env(safe-area-inset-top));
-        right: 20px;
-        width: 44px;
-        height: 44px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(8px);
-        z-index: 50;
-        cursor: pointer;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: background 0.2s;
-        opacity: 0;
-      }
-      .menu-btn:active {
-        background: rgba(255, 255, 255, 0.3);
-      }
-      .menu-icon {
-        width: 28px;
-        height: 28px;
-        fill: var(--text-main);
-        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
-      }
+    /* 菜单按钮 */
+    .menu-btn {
+      position: absolute;
+      top: max(20px, env(safe-area-inset-top));
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: background 0.2s;
+      opacity: 0;
+    }
 
-      .top-info {
-        text-align: center;
-        z-index: 2;
-        margin-bottom: 20px;
-        margin-top: 20px;
-      }
-      .pressure {
-        font-size: 15px;
-        color: var(--text-sec);
-        margin-bottom: 6px;
-        font-weight: 500;
-        letter-spacing: 0.5px;
-      }
-      .accuracy {
-        font-size: 14px;
-        color: var(--text-sec);
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-      }
+    .menu-btn:active {
+      background: rgba(255, 255, 255, 0.3);
+    }
 
-      .gps-status {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: #ff4757;
-        box-shadow: 0 0 5px #ff4757;
-        transition: background-color 0.3s;
-      }
-      .gps-status.active {
-        background-color: #2ed573;
-        box-shadow: 0 0 8px #2ed573;
-      }
+    .menu-icon {
+      width: 28px;
+      height: 28px;
+      fill: var(--text-main);
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+    }
 
-      .gauge-section {
-        flex: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        position: relative;
-        top: -40px;
-      }
-      .gauge-wrapper {
-        position: relative;
-        width: 320px;
-        height: 320px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-      }
+    .top-info {
+      text-align: center;
+      z-index: 2;
+      margin-bottom: 20px;
+      margin-top: 20px;
+    }
 
-      .compass-ring {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background: var(--glass-bg);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid var(--glass-border);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-        will-change: transform;
-      }
+    .pressure {
+      font-size: 15px;
+      color: var(--text-sec);
+      margin-bottom: 6px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
 
-      .compass-n,
-      .compass-s {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        z-index: 3;
-        border-left: 10px solid transparent;
-        border-right: 10px solid transparent;
-      }
-      .compass-n {
-        top: -14px;
-        border-bottom: 20px solid var(--compass-n);
-      }
-      .compass-s {
-        bottom: -14px;
-        border-top: 20px solid var(--compass-s);
-      }
-      .compass-n::after {
-        content: "N";
-        position: absolute;
-        top: 22px;
-        left: -5px;
-        font-size: 13px;
-        color: var(--compass-n);
-        font-weight: 800;
-      }
-      .compass-s::after {
-        content: "S";
-        position: absolute;
-        bottom: 22px;
-        left: -5px;
-        font-size: 13px;
-        color: var(--compass-s);
-        font-weight: 800;
-      }
+    .accuracy {
+      font-size: 14px;
+      color: var(--text-sec);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
 
-      .inner-circle {
-        width: 240px;
-        height: 240px;
-        border-radius: 50%;
-        background: var(--circle-grad);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+    .gps-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #ff4757;
+      box-shadow: 0 0 5px #ff4757;
+      transition: background-color 0.3s;
+    }
+
+    .gps-status.active {
+      background-color: #2ed573;
+      box-shadow: 0 0 8px #2ed573;
+    }
+
+    .gauge-section {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      position: relative;
+      top: -40px;
+    }
+
+    .gauge-wrapper {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .compass-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      will-change: transform;
+    }
+
+    .compass-n,
+    .compass-s {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      z-index: 3;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+    }
+
+    .compass-n {
+      top: -14px;
+      border-bottom: 20px solid var(--compass-n);
+    }
+
+    .compass-s {
+      bottom: -14px;
+      border-top: 20px solid var(--compass-s);
+    }
+
+    .compass-n::after {
+      content: "N";
+      position: absolute;
+      top: 22px;
+      left: -5px;
+      font-size: 13px;
+      color: var(--compass-n);
+      font-weight: 800;
+    }
+
+    .compass-s::after {
+      content: "S";
+      position: absolute;
+      bottom: 22px;
+      left: -5px;
+      font-size: 13px;
+      color: var(--compass-s);
+      font-weight: 800;
+    }
+
+    .inner-circle {
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: var(--circle-grad);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 15px 50px var(--glow-color);
+      z-index: 5;
+      animation: breathe 4s ease-in-out infinite;
+      /* 增加背景过渡时间 */
+      transition:
+        background 3s ease,
+        box-shadow 3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .label-alt {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 4px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .value-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .main-value {
+      font-size: 64px;
+      font-weight: 600;
+      text-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+      line-height: 1;
+      font-family: "PingFang SC", sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .unit {
+      font-size: 20px;
+      margin-left: 6px;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+
+    .speed-label {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-top: 10px;
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .perm-hint {
+      position: absolute;
+      bottom: 30px;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    .perm-hint.show {
+      opacity: 1;
+    }
+
+    .footer-info {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 100px;
+      z-index: 1;
+    }
+
+    .sun-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 16px;
+      color: var(--text-sec);
+      font-weight: 500;
+    }
+
+    .sun-icon {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      opacity: 0.8;
+    }
+
+    .theme-drawer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(20, 20, 23, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 20px 0;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      z-index: 100;
+      transform: translateY(110%);
+      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+
+    }
+
+    .theme-drawer.active {
+      transform: translateY(0);
+    }
+
+    .theme-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 25px 15px 25px;
+    }
+
+    .theme-title {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .theme-current {
+      font-size: 14px;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .theme-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: 15px;
+      padding: 0 25px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 10px;
+    }
+
+    .theme-btn {
+      flex: 0 0 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      position: relative;
+      transition: transform 0.2s;
+      overflow: hidden;
+    }
+
+    .theme-btn.active {
+      border-color: #fff;
+      transform: scale(1.1);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    }
+
+    .theme-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--btn-bg);
+    }
+
+    /* 自动感光主题的特殊标记 */
+    .theme-btn.is-auto::after {
+      content: "AUTO";
+      font-size: 8px;
+      font-weight: 800;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      width: auto;
+      height: auto;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    /* 其他普通主题的圆点 */
+    .theme-btn:not(.is-auto)::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--btn-circle-color);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .overlay-mask {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.01);
+      z-index: 99;
+      display: none;
+    }
+
+    .overlay-mask.active {
+      display: block;
+    }
+
+
+    @keyframes breathe {
+
+      0%,
+      100% {
+        transform: scale(1);
         box-shadow: 0 15px 50px var(--glow-color);
-        z-index: 5;
-        animation: breathe 4s ease-in-out infinite;
-        /* 增加背景过渡时间 */
-        transition:
-          background 3s ease,
-          box-shadow 3s ease;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-      }
-      .label-alt {
-        font-size: 14px;
-        color: rgba(255, 255, 255, 0.9);
-        margin-bottom: 4px;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-      .value-row {
-        display: flex;
-        align-items: baseline;
-        justify-content: center;
-        white-space: nowrap;
-      }
-      .main-value {
-        font-size: 64px;
-        font-weight: 600;
-        text-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
-        line-height: 1;
-        font-family: "PingFang SC", sans-serif;
-        font-variant-numeric: tabular-nums;
-      }
-      .unit {
-        font-size: 20px;
-        margin-left: 6px;
-        font-weight: 400;
-        opacity: 0.9;
-      }
-      .speed-label {
-        font-size: 15px;
-        color: rgba(255, 255, 255, 0.9);
-        margin-top: 10px;
-        font-weight: 400;
-        font-variant-numeric: tabular-nums;
       }
 
-      .perm-hint {
-        position: absolute;
-        bottom: 30px;
-        width: 100%;
-        text-align: center;
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.5);
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.5s;
+      50% {
+        transform: scale(1.02);
+        box-shadow: 0 25px 70px var(--glow-color);
       }
-      .perm-hint.show {
-        opacity: 1;
-      }
+    }
+  </style>
+</head>
 
-      .footer-info {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        align-items: center;
-        margin-bottom: 100px;
-        z-index: 1;
-      }
-      .sun-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 16px;
-        color: var(--text-sec);
-        font-weight: 500;
-      }
-      .sun-icon {
-        width: 20px;
-        height: 20px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2;
-        opacity: 0.8;
-      }
+<body>
+  <div class="app-container" id="app">
+    <div class="overlay-mask" id="mask"></div>
 
-      .theme-drawer {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: rgba(20, 20, 23, 0.85);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        border-top-left-radius: 24px;
-        border-top-right-radius: 24px;
-        padding: 20px 0;
-        padding-bottom: max(20px, env(safe-area-inset-bottom));
-        z-index: 100;
-        transform: translateY(110%);
-        transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
-        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
-       
-      }
-      .theme-drawer.active {
-        transform: translateY(0);
-      }
-      .theme-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 25px 15px 25px;
-      }
-      .theme-title {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.5);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-      .theme-current {
-        font-size: 14px;
-        color: #fff;
-        font-weight: 600;
-      }
-      .theme-scroll {
-        display: flex;
-        overflow-x: auto;
-        gap: 15px;
-        padding: 0 25px;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        padding-bottom: 10px;
-      }
-      .theme-btn {
-        flex: 0 0 48px;
-        height: 48px;
-        border-radius: 50%;
-        cursor: pointer;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        position: relative;
-        transition: transform 0.2s;
-        overflow: hidden;
-      }
-      .theme-btn.active {
-        border-color: #fff;
-        transform: scale(1.1);
-        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
-      }
-      .theme-btn::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: var(--btn-bg);
-      }
+    <div class="menu-btn" id="menuBtn" title="菜单/切换主题">
+      <svg class="menu-icon" viewBox="0 0 24 24">
+        <path
+          d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+      </svg>
+    </div>
 
-      /* 自动感光主题的特殊标记 */
-      .theme-btn.is-auto::after {
-        content: "AUTO";
-        font-size: 8px;
-        font-weight: 800;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: white;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-        width: auto;
-        height: auto;
-        background: transparent;
-        border: none;
-        box-shadow: none;
-      }
-
-      /* 其他普通主题的圆点 */
-      .theme-btn:not(.is-auto)::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: var(--btn-circle-color);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-
-      .overlay-mask {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.01);
-        z-index: 99;
-        display: none;
-      }
-      .overlay-mask.active {
-        display: block;
-      }
-   
-
-      @keyframes breathe {
-        0%,
-        100% {
-          transform: scale(1);
-          box-shadow: 0 15px 50px var(--glow-color);
-        }
-        50% {
-          transform: scale(1.02);
-          box-shadow: 0 25px 70px var(--glow-color);
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="app-container" id="app">
-      <div class="overlay-mask" id="mask"></div>
-
-      <div class="menu-btn" id="menuBtn" title="菜单/切换主题">
-        <svg class="menu-icon" viewBox="0 0 24 24">
-          <path
-            d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-          />
-        </svg>
-      </div>
-
-      <div class="top-info">
-        <div class="pressure" id="lat-lon">等待 GPS 信号...</div>
-        <div class="accuracy">
-          <div class="gps-status" id="gps-indicator"></div>
-          <span id="accuracy-val">精度: -- 米</span>
-        </div>
-      </div>
-
-      <div class="gauge-section">
-        <div class="gauge-wrapper" id="compassWrapper">
-          <div class="compass-ring" id="compass">
-            <div class="compass-n"></div>
-            <div class="compass-s"></div>
-          </div>
-
-          <div class="inner-circle">
-            <div class="label-alt">当前海拔</div>
-            <div class="value-row">
-              <span class="main-value" id="alt-val">---</span>
-              <span class="unit">米</span>
-            </div>
-            <div class="speed-label">
-              当前速度: <span id="speed-val">0</span> km/h
-            </div>
-          </div>
-
-          <div class="perm-hint" id="permHint">正在启用指南针...</div>
-        </div>
-      </div>
-
-      <div class="footer-info">
-        <div class="sun-row">
-          <svg class="sun-icon" viewBox="0 0 24 24">
-            <path d="M17 18a5 5 0 0 0-10 0"></path>
-            <line x1="12" y1="2" x2="12" y2="9"></line>
-            <polyline points="8 6 12 2 16 6"></polyline>
-            <line x1="1" y1="18" x2="23" y2="18"></line>
-          </svg>
-          <span id="sunrise-time">--:--</span>
-        </div>
-        <div class="sun-row">
-          <svg class="sun-icon" viewBox="0 0 24 24">
-            <path d="M17 18a5 5 0 0 0-10 0"></path>
-            <line x1="12" y1="2" x2="12" y2="9"></line>
-            <polyline points="16 5 12 9 8 5"></polyline>
-            <line x1="1" y1="18" x2="23" y2="18"></line>
-          </svg>
-          <span id="sunset-time">--:--</span>
-        </div>
-      </div>
-
-      <div class="theme-drawer" id="themeDrawer">
-        <div class="theme-header">
-          <span class="theme-title">选择主题 / THEMES</span>
-          <span class="theme-current" id="theme-name-display">炫彩探险</span>
-        </div>
-        <div class="theme-scroll" id="themeContainer"></div>
+    <div class="top-info">
+      <div class="pressure" id="lat-lon">等待 GPS 信号...</div>
+      <div class="accuracy">
+        <div class="gps-status" id="gps-indicator"></div>
+        <span id="accuracy-val">精度: -- 米</span>
       </div>
     </div>
 
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () =>
-          navigator.serviceWorker.register("sw.js"),
-        );
-      }
+    <div class="gauge-section">
+      <div class="gauge-wrapper" id="compassWrapper">
+        <div class="compass-ring" id="compass">
+          <div class="compass-n"></div>
+          <div class="compass-s"></div>
+        </div>
 
-      const menuBtn = document.getElementById("menuBtn");
-      const themeDrawer = document.getElementById("themeDrawer");
-      const mask = document.getElementById("mask");
+        <div class="inner-circle">
+          <div class="label-alt">当前海拔</div>
+          <div class="value-row">
+            <span class="main-value" id="alt-val">---</span>
+            <span class="unit">米</span>
+          </div>
+          <div class="speed-label">
+            当前速度: <span id="speed-val">0</span> km/h
+          </div>
+        </div>
 
-      function toggleDrawer() {
-        const isActive = themeDrawer.classList.contains("active");
-        if (isActive) closeDrawer();
-        else openDrawer();
-      }
-      function openDrawer() {
-        themeDrawer.classList.add("active");
-        mask.classList.add("active");
-      }
-      function closeDrawer() {
-        themeDrawer.classList.remove("active");
-        mask.classList.remove("active");
-      }
+        <div class="perm-hint" id="permHint">正在启用指南针...</div>
+      </div>
+    </div>
 
-      menuBtn.addEventListener("click", toggleDrawer);
-      mask.addEventListener("click", closeDrawer);
+    <div class="footer-info">
+      <div class="sun-row">
+        <svg class="sun-icon" viewBox="0 0 24 24">
+          <path d="M17 18a5 5 0 0 0-10 0"></path>
+          <line x1="12" y1="2" x2="12" y2="9"></line>
+          <polyline points="8 6 12 2 16 6"></polyline>
+          <line x1="1" y1="18" x2="23" y2="18"></line>
+        </svg>
+        <span id="sunrise-time">--:--</span>
+      </div>
+      <div class="sun-row">
+        <svg class="sun-icon" viewBox="0 0 24 24">
+          <path d="M17 18a5 5 0 0 0-10 0"></path>
+          <line x1="12" y1="2" x2="12" y2="9"></line>
+          <polyline points="16 5 12 9 8 5"></polyline>
+          <line x1="1" y1="18" x2="23" y2="18"></line>
+        </svg>
+        <span id="sunset-time">--:--</span>
+      </div>
+    </div>
 
-      // ================== 指南针逻辑 ==================
-      const elCompass = document.getElementById("compass");
-      const elPermHint = document.getElementById("permHint");
-      let isCompassEnabled = false;
-      let accumulatedRotation = 0;
-      let lastHeading = 0;
+    <div class="theme-drawer" id="themeDrawer">
+      <div class="theme-header">
+        <span class="theme-title">选择主题 / THEMES</span>
+        <span class="theme-current" id="theme-name-display">炫彩探险</span>
+      </div>
+      <div class="theme-scroll" id="themeContainer"></div>
+    </div>
+  </div>
 
-      const isIOS =
-        typeof DeviceOrientationEvent !== "undefined" &&
-        typeof DeviceOrientationEvent.requestPermission === "function";
-      if (isIOS) elPermHint.classList.add("show");
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () =>
+        navigator.serviceWorker.register("sw.js"),
+      );
+    }
 
-      function initCompass() {
-        elPermHint.textContent = "正在启用指南针...";
-        elPermHint.classList.add("show");
-        
-        if (isIOS && !isCompassEnabled) {
-          DeviceOrientationEvent.requestPermission()
-            .then((response) => {
-              if (response === "granted") {
-                window.addEventListener(
-                  "deviceorientation",
-                  handleOrientation,
-                  true,
-                );
-                isCompassEnabled = true;
-                elPermHint.classList.remove("show");
-              } else {
-                elPermHint.textContent = "需要罗盘权限才能显示方向";
-              }
-            })
-            .catch((error) => {
-              console.error("指南针权限请求失败:", error);
-              elPermHint.textContent = "指南针初始化失败";
-            });
-        } else if (!isIOS) {
-          // 非 iOS 设备直接启用
-          if (window.DeviceOrientationEvent) {
-            window.addEventListener("deviceorientation", handleOrientation, true);
-            isCompassEnabled = true;
-            elPermHint.classList.remove("show");
-          } else {
-            elPermHint.textContent = "设备不支持指南针";
-          }
-        }
-      }
+    const menuBtn = document.getElementById("menuBtn");
+    const themeDrawer = document.getElementById("themeDrawer");
+    const mask = document.getElementById("mask");
 
-      // 自动初始化指南针
-      initCompass();
+    function toggleDrawer() {
+      const isActive = themeDrawer.classList.contains("active");
+      if (isActive) closeDrawer();
+      else openDrawer();
+    }
+    function openDrawer() {
+      themeDrawer.classList.add("active");
+      mask.classList.add("active");
+    }
+    function closeDrawer() {
+      themeDrawer.classList.remove("active");
+      mask.classList.remove("active");
+    }
 
-      // 为了确保指南针能够正常工作，添加一个重试机制
-      setTimeout(() => {
-        if (!isCompassEnabled && window.DeviceOrientationEvent) {
-          initCompass();
-        }
-      }, 1000);
+    menuBtn.addEventListener("click", toggleDrawer);
+    mask.addEventListener("click", closeDrawer);
 
-      function handleOrientation(e) {
-        let heading = 0;
-        if (e.webkitCompassHeading) {
-          heading = e.webkitCompassHeading;
-        } else if (e.alpha !== null) {
-          heading = 360 - e.alpha;
-        }
+    // ================== 指南针逻辑 ==================
+    const elCompass = document.getElementById("compass");
+    const elPermHint = document.getElementById("permHint");
+    let isCompassEnabled = false;
+    let accumulatedRotation = 0;
+    let lastHeading = 0;
 
-        if (heading < 0) heading += 360;
-        heading = heading % 360;
+    const isIOS =
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function";
+    if (isIOS) elPermHint.classList.add("show");
 
-        let delta = heading - lastHeading;
-        if (delta > 180) delta -= 360;
-        if (delta < -180) delta += 360;
+    function initCompass() {
+      elPermHint.textContent = "正在启用指南针...";
+      elPermHint.classList.add("show");
 
-        accumulatedRotation += delta;
-        lastHeading = heading;
-        if (accumulatedRotation < 0) {
-          accumulatedRotation = 360 - accumulatedRotation;
-        }
-        requestAnimationFrame(() => {
-          elCompass.style.transform = `rotate(-${accumulatedRotation}deg)`;
-        });
-      }
-
-      // ================== 主题配置 ==================
-      const themes = [
-        // 1. 自动感光主题 (Special)
-        {
-          name: "自动感光",
-          isAuto: true,
-          // 下面是预览色 (彩虹色预览)
-          bg: "linear-gradient(180deg, #1cb5c2, #f57f44, #000000)",
-          circle: "linear-gradient(135deg, #ffffff, #000000)",
-        },
-        {
-          name: "炫彩探险",
-          bg: "linear-gradient(180deg, #1cb5c2 0%, #1cb5c2 20%, #b5a454 60%, #c94028 100%)",
-          circle: "linear-gradient(135deg, #f57f44, #e3304a)",
-          glow: "rgba(227, 48, 74, 0.5)",
-        },
-        {
-          name: "森林深处",
-          bg: "linear-gradient(180deg, #134E5E, #71B280)",
-          circle: "linear-gradient(135deg, #56ab2f, #a8e063)",
-          glow: "rgba(86, 171, 47, 0.4)",
-        },
-        {
-          name: "沙漠黄昏",
-          bg: "linear-gradient(180deg, #403B4A, #E7E9BB)",
-          circle: "linear-gradient(135deg, #F09819, #EDDE5D)",
-          glow: "rgba(240, 152, 25, 0.4)",
-        },
-        {
-          name: "极光夜空",
-          bg: "linear-gradient(180deg, #000000, #434343)",
-          circle: "linear-gradient(135deg, #1D976C, #93F9B9)",
-          glow: "rgba(29, 151, 108, 0.4)",
-        },
-        {
-          name: "暗夜火山",
-          bg: "linear-gradient(180deg, #232526, #414345)",
-          circle: "linear-gradient(135deg, #cb2d3e, #ef473a)",
-          glow: "rgba(203, 45, 62, 0.5)",
-        },
-        {
-          name: "深秋落叶",
-          bg: "linear-gradient(180deg, #3e5151, #decba4)",
-          circle: "linear-gradient(135deg, #e65c00, #F9D423)",
-          glow: "rgba(230, 92, 0, 0.4)",
-        },
-        {
-          name: "战术黑绿",
-          bg: "linear-gradient(180deg, #000000, #0f0f0f)",
-          circle: "linear-gradient(135deg, #134E5E, #71B280)",
-          glow: "rgba(113, 178, 128, 0.3)",
-        },
-        {
-          name: "午夜深蓝",
-          bg: "linear-gradient(180deg, #141E30, #243B55)",
-          circle: "linear-gradient(135deg, #bdc3c7, #2c3e50)",
-          glow: "rgba(189, 195, 199, 0.2)",
-        },
-        {
-          name: "冰镇柠檬",
-          bg: "linear-gradient(180deg, #FFFDE4, #005AA7)",
-          circle: "linear-gradient(135deg, #F2994A, #F2C94C)",
-          glow: "rgba(242, 153, 74, 0.4)",
-          light: false,
-        },
-        {
-          name: "磨砂玻璃",
-          bg: "linear-gradient(180deg, #E6DADA, #274046)",
-          circle: "linear-gradient(135deg, #3a7bd5, #3a6073)",
-          glow: "rgba(58, 123, 213, 0.4)",
-        },
-        {
-          name: "赛博霓虹",
-          bg: "linear-gradient(180deg, #24243e, #302b63)",
-          circle: "linear-gradient(135deg, #f80759, #bc4e9c)",
-          glow: "rgba(248, 7, 89, 0.5)",
-        },
-        {
-          name: "黑客矩阵",
-          bg: "linear-gradient(180deg, #000000, #052205)",
-          circle: "linear-gradient(135deg, #00F260, #0575E6)",
-          glow: "rgba(0, 242, 96, 0.4)",
-        },
-        {
-          name: "霓虹幻境",
-          bg: "linear-gradient(180deg, #3494E6, #EC6EAD)",
-          circle: "linear-gradient(135deg, #673AB7, #512DA8)",
-          glow: "rgba(103, 58, 183, 0.4)",
-        },
-        {
-          name: "电子脉冲",
-          bg: "linear-gradient(180deg, #0f0c29, #302b63)",
-          circle: "linear-gradient(135deg, #11998e, #38ef7d)",
-          glow: "rgba(17, 153, 142, 0.4)",
-        },
-        {
-          name: "复古街机",
-          bg: "linear-gradient(180deg, #3a7bd5, #3a6073)",
-          circle: "linear-gradient(135deg, #F2994A, #F2C94C)",
-          glow: "rgba(242, 153, 74, 0.4)",
-        },
-        {
-          name: "深海蓝宝",
-          bg: "linear-gradient(180deg, #1A2980, #26D0CE)",
-          circle: "linear-gradient(135deg, #2980B9, #6DD5FA)",
-          glow: "rgba(41, 128, 185, 0.4)",
-        },
-        {
-          name: "黄昏艺术",
-          bg: "linear-gradient(180deg, #355C7D, #6C5B7B, #C06C84)",
-          circle: "linear-gradient(135deg, #F8B195, #F67280)",
-          glow: "rgba(248, 177, 149, 0.4)",
-        },
-        {
-          name: "梦幻紫霞",
-          bg: "linear-gradient(180deg, #005AA7, #FFFDE4)",
-          circle: "linear-gradient(135deg, #DA22FF, #9733EE)",
-          glow: "rgba(218, 34, 255, 0.4)",
-        },
-      ];
-
-      const app = document.getElementById("app");
-      const themeContainer = document.getElementById("themeContainer");
-      const themeLabel = document.getElementById("theme-name-display");
-      const elAlt = document.getElementById("alt-val");
-      const elSpeed = document.getElementById("speed-val");
-      const elAccuracy = document.getElementById("accuracy-val");
-      const elLatLon = document.getElementById("lat-lon");
-      const elGpsStatus = document.getElementById("gps-indicator");
-
-      // 自动主题变量
-      let isAutoThemeActive = false;
-      let autoThemeInterval = null;
-      let lastKnownLat = 30; // 默认值
-      let lastKnownLng = 120;
-
-      function initThemes() {
-        const savedThemeIndex = localStorage.getItem(
-          "gps-altimeter-theme-index",
-        );
-        const activeIndex =
-          savedThemeIndex !== null ? parseInt(savedThemeIndex) : 0;
-        themes.forEach((theme, index) => {
-          const btn = document.createElement("div");
-          btn.className = "theme-btn";
-          if (theme.isAuto) btn.classList.add("is-auto");
-          btn.style.setProperty("--btn-bg", theme.bg);
-          btn.style.setProperty("--btn-circle-color", theme.circle);
-          if (index === activeIndex) activateTheme(btn, theme, index);
-          btn.onclick = () => activateTheme(btn, theme, index);
-          themeContainer.appendChild(btn);
-        });
-      }
-
-      function activateTheme(btn, theme, index) {
-        document
-          .querySelectorAll(".theme-btn")
-          .forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        themeLabel.textContent = theme.name;
-
-        // 处理自动主题逻辑
-        if (theme.isAuto) {
-          isAutoThemeActive = true;
-          updateAutoTheme(); // 立即执行一次
-          // 每分钟更新一次
-          if (autoThemeInterval) clearInterval(autoThemeInterval);
-          autoThemeInterval = setInterval(updateAutoTheme, 60000);
-        } else {
-          isAutoThemeActive = false;
-          if (autoThemeInterval) clearInterval(autoThemeInterval);
-          applyThemeStyles(theme);
-        }
-
-        localStorage.setItem("gps-altimeter-theme-index", index);
-      }
-
-      function applyThemeStyles(theme) {
-        // 更新 CSS 变量
-        app.style.setProperty("--bg-grad", theme.bg);
-        app.style.setProperty("--circle-grad", theme.circle);
-        app.style.setProperty(
-          "--glow-color",
-          theme.glow || "rgba(255,255,255,0.3)",
-        );
-
-        // 直接更新背景属性，确保在 PWA 模式下也能正确显示
-        app.style.background = theme.bg;
-
-        // 更新状态栏颜色
-        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeColorMeta) {
-          // 从背景渐变中提取主色调
-          const bgValue = theme.bg;
-          let mainColor = "#1cb5c2";
-          
-          // 尝试从渐变中提取第一个颜色
-          if (bgValue.includes("linear-gradient")) {
-            const colorMatch = bgValue.match(/rgba?\([^)]+\)|#[0-9a-fA-F]{3,6}/);
-            if (colorMatch) {
-              mainColor = colorMatch[0];
+      if (isIOS && !isCompassEnabled) {
+        DeviceOrientationEvent.requestPermission()
+          .then((response) => {
+            if (response === "granted") {
+              window.addEventListener(
+                "deviceorientation",
+                handleOrientation,
+                true,
+              );
+              isCompassEnabled = true;
+              elPermHint.classList.remove("show");
+            } else {
+              elPermHint.textContent = "需要罗盘权限才能显示方向";
             }
-          } else if (bgValue.startsWith("#")) {
-            mainColor = bgValue;
-          }
-          
-          themeColorMeta.content = mainColor;
-          
-          // 同时更新 document.body.style.backgroundColor 作为后备
-          document.body.style.backgroundColor = mainColor;
+          })
+          .catch((error) => {
+            console.error("指南针权限请求失败:", error);
+            elPermHint.textContent = "指南针初始化失败";
+          });
+      } else if (!isIOS) {
+        // 非 iOS 设备直接启用
+        if (window.DeviceOrientationEvent) {
+          window.addEventListener("deviceorientation", handleOrientation, true);
+          isCompassEnabled = true;
+          elPermHint.classList.remove("show");
+        } else {
+          elPermHint.textContent = "设备不支持指南针";
         }
+      }
+    }
 
+    // 自动初始化指南针
+    initCompass();
+
+    // 为了确保指南针能够正常工作，添加一个重试机制
+    setTimeout(() => {
+      if (!isCompassEnabled && window.DeviceOrientationEvent) {
+        initCompass();
+      }
+    }, 1000);
+
+    function handleOrientation(e) {
+      let heading = 0;
+      if (e.webkitCompassHeading) {
+        heading = e.webkitCompassHeading;
+      } else if (e.alpha !== null) {
+        heading = 360 - e.alpha;
+      }
+
+      if (heading < 0) heading += 360;
+      heading = heading % 360;
+
+      let delta = heading - lastHeading;
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+
+      accumulatedRotation += delta;
+      lastHeading = heading;
+      if (accumulatedRotation < 0) {
+        accumulatedRotation = 360 - accumulatedRotation;
+      }
+      requestAnimationFrame(() => {
+        elCompass.style.transform = `rotate(-${accumulatedRotation}deg)`;
+      });
+    }
+
+    // ================== 主题配置 ==================
+    const themes = [
+      // 1. 自动感光主题 (Special)
+      {
+        name: "自动感光",
+        isAuto: true,
+        // 下面是预览色 (彩虹色预览)
+        bg: "linear-gradient(180deg, #1cb5c2, #f57f44, #000000)",
+        circle: "linear-gradient(135deg, #ffffff, #000000)",
+      },
+      {
+        name: "炫彩探险",
+        bg: "linear-gradient(180deg, #1cb5c2 0%, #1cb5c2 20%, #b5a454 60%, #c94028 100%)",
+        circle: "linear-gradient(135deg, #f57f44, #e3304a)",
+        glow: "rgba(227, 48, 74, 0.5)",
+      },
+      {
+        name: "森林深处",
+        bg: "linear-gradient(180deg, #134E5E, #71B280)",
+        circle: "linear-gradient(135deg, #56ab2f, #a8e063)",
+        glow: "rgba(86, 171, 47, 0.4)",
+      },
+      {
+        name: "沙漠黄昏",
+        bg: "linear-gradient(180deg, #403B4A, #E7E9BB)",
+        circle: "linear-gradient(135deg, #F09819, #EDDE5D)",
+        glow: "rgba(240, 152, 25, 0.4)",
+      },
+      {
+        name: "极光夜空",
+        bg: "linear-gradient(180deg, #000000, #434343)",
+        circle: "linear-gradient(135deg, #1D976C, #93F9B9)",
+        glow: "rgba(29, 151, 108, 0.4)",
+      },
+      {
+        name: "暗夜火山",
+        bg: "linear-gradient(180deg, #232526, #414345)",
+        circle: "linear-gradient(135deg, #cb2d3e, #ef473a)",
+        glow: "rgba(203, 45, 62, 0.5)",
+      },
+      {
+        name: "深秋落叶",
+        bg: "linear-gradient(180deg, #3e5151, #decba4)",
+        circle: "linear-gradient(135deg, #e65c00, #F9D423)",
+        glow: "rgba(230, 92, 0, 0.4)",
+      },
+      {
+        name: "战术黑绿",
+        bg: "linear-gradient(180deg, #000000, #0f0f0f)",
+        circle: "linear-gradient(135deg, #134E5E, #71B280)",
+        glow: "rgba(113, 178, 128, 0.3)",
+      },
+      {
+        name: "午夜深蓝",
+        bg: "linear-gradient(180deg, #141E30, #243B55)",
+        circle: "linear-gradient(135deg, #bdc3c7, #2c3e50)",
+        glow: "rgba(189, 195, 199, 0.2)",
+      },
+      {
+        name: "冰镇柠檬",
+        bg: "linear-gradient(180deg, #FFFDE4, #005AA7)",
+        circle: "linear-gradient(135deg, #F2994A, #F2C94C)",
+        glow: "rgba(242, 153, 74, 0.4)",
+        light: false,
+      },
+      {
+        name: "磨砂玻璃",
+        bg: "linear-gradient(180deg, #E6DADA, #274046)",
+        circle: "linear-gradient(135deg, #3a7bd5, #3a6073)",
+        glow: "rgba(58, 123, 213, 0.4)",
+      },
+      {
+        name: "赛博霓虹",
+        bg: "linear-gradient(180deg, #24243e, #302b63)",
+        circle: "linear-gradient(135deg, #f80759, #bc4e9c)",
+        glow: "rgba(248, 7, 89, 0.5)",
+      },
+      {
+        name: "黑客矩阵",
+        bg: "linear-gradient(180deg, #000000, #052205)",
+        circle: "linear-gradient(135deg, #00F260, #0575E6)",
+        glow: "rgba(0, 242, 96, 0.4)",
+      },
+      {
+        name: "霓虹幻境",
+        bg: "linear-gradient(180deg, #3494E6, #EC6EAD)",
+        circle: "linear-gradient(135deg, #673AB7, #512DA8)",
+        glow: "rgba(103, 58, 183, 0.4)",
+      },
+      {
+        name: "电子脉冲",
+        bg: "linear-gradient(180deg, #0f0c29, #302b63)",
+        circle: "linear-gradient(135deg, #11998e, #38ef7d)",
+        glow: "rgba(17, 153, 142, 0.4)",
+      },
+      {
+        name: "复古街机",
+        bg: "linear-gradient(180deg, #3a7bd5, #3a6073)",
+        circle: "linear-gradient(135deg, #F2994A, #F2C94C)",
+        glow: "rgba(242, 153, 74, 0.4)",
+      },
+      {
+        name: "深海蓝宝",
+        bg: "linear-gradient(180deg, #1A2980, #26D0CE)",
+        circle: "linear-gradient(135deg, #2980B9, #6DD5FA)",
+        glow: "rgba(41, 128, 185, 0.4)",
+      },
+      {
+        name: "黄昏艺术",
+        bg: "linear-gradient(180deg, #355C7D, #6C5B7B, #C06C84)",
+        circle: "linear-gradient(135deg, #F8B195, #F67280)",
+        glow: "rgba(248, 177, 149, 0.4)",
+      },
+      {
+        name: "梦幻紫霞",
+        bg: "linear-gradient(180deg, #005AA7, #FFFDE4)",
+        circle: "linear-gradient(135deg, #DA22FF, #9733EE)",
+        glow: "rgba(218, 34, 255, 0.4)",
+      },
+    ];
+
+    const app = document.getElementById("app");
+    const themeContainer = document.getElementById("themeContainer");
+    const themeLabel = document.getElementById("theme-name-display");
+    const elAlt = document.getElementById("alt-val");
+    const elSpeed = document.getElementById("speed-val");
+    const elAccuracy = document.getElementById("accuracy-val");
+    const elLatLon = document.getElementById("lat-lon");
+    const elGpsStatus = document.getElementById("gps-indicator");
+
+    // 自动主题变量
+    let isAutoThemeActive = false;
+    let autoThemeInterval = null;
+    let lastKnownLat = 30; // 默认值
+    let lastKnownLng = 120;
+
+    function initThemes() {
+      const savedThemeIndex = localStorage.getItem(
+        "gps-altimeter-theme-index",
+      );
+      const activeIndex =
+        savedThemeIndex !== null ? parseInt(savedThemeIndex) : 0;
+      themes.forEach((theme, index) => {
+        const btn = document.createElement("div");
+        btn.className = "theme-btn";
+        if (theme.isAuto) btn.classList.add("is-auto");
+        btn.style.setProperty("--btn-bg", theme.bg);
+        btn.style.setProperty("--btn-circle-color", theme.circle);
+        if (index === activeIndex) activateTheme(btn, theme, index);
+        btn.onclick = () => activateTheme(btn, theme, index);
+        themeContainer.appendChild(btn);
+      });
+    }
+
+    function activateTheme(btn, theme, index) {
+      document
+        .querySelectorAll(".theme-btn")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      themeLabel.textContent = theme.name;
+
+      // 处理自动主题逻辑
+      if (theme.isAuto) {
+        isAutoThemeActive = true;
+        updateAutoTheme(); // 立即执行一次
+        // 每分钟更新一次
+        if (autoThemeInterval) clearInterval(autoThemeInterval);
+        autoThemeInterval = setInterval(updateAutoTheme, 60000);
+      } else {
+        isAutoThemeActive = false;
+        if (autoThemeInterval) clearInterval(autoThemeInterval);
+        applyThemeStyles(theme);
+      }
+
+      localStorage.setItem("gps-altimeter-theme-index", index);
+    }
+
+    function applyThemeStyles(theme) {
+      // 更新 CSS 变量
+      app.style.setProperty("--bg-grad", theme.bg);
+      app.style.setProperty("--circle-grad", theme.circle);
+      app.style.setProperty(
+        "--glow-color",
+        theme.glow || "rgba(255,255,255,0.3)",
+      );
+
+      // 直接更新背景属性，确保在 PWA 模式下也能正确显示
+      app.style.background = theme.bg;
+
+      // ========== 修复状态栏颜色切换的核心逻辑 ==========
+      // 1. 从背景渐变中提取主色调（优化提取逻辑）
+      const bgValue = theme.bg;
+      let mainColor = "#1cb5c2"; // 默认颜色
+
+      // 更健壮的渐变颜色提取逻辑
+      if (bgValue.includes("linear-gradient")) {
+        // 匹配第一个有效的颜色值（#xxx 或 rgba/rgb）
+        const colorRegex = /(#([0-9a-f]{3}){1,2}|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*\d+(\.\d+)?\s*)?\))/i;
+        const colorMatch = bgValue.match(colorRegex);
+        if (colorMatch && colorMatch[0]) {
+          mainColor = colorMatch[0];
+        }
+      } else if (bgValue.startsWith("#")) {
+        mainColor = bgValue;
+      }
+
+      // 2. 更新标准的 theme-color meta 标签
+      const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeColorMeta) {
+        themeColorMeta.content = mainColor;
+      }
+
+      // 3. 适配 iOS 状态栏（关键修复）
+      const appleStatusBarMeta = document.getElementById("apple-status-bar-style");
+      if (appleStatusBarMeta) {
+        // iOS 支持的状态栏样式：default/black/black-translucent，或直接设置颜色
         if (theme.light) {
-          app.style.setProperty("--text-main", "#2d3436");
-          app.style.setProperty("--text-sec", "rgba(45, 52, 54, 0.7)");
-          app.style.setProperty("--glass-bg", "rgba(0,0,0,0.05)");
-          app.style.setProperty("--glass-border", "rgba(0,0,0,0.1)");
-          app.style.setProperty("--compass-n", "#d63031");
-          app.style.setProperty("--compass-s", "#636e72");
+          appleStatusBarMeta.content = "default"; // 浅色状态栏（黑字）
         } else {
-          app.style.setProperty("--text-main", "#ffffff");
-          app.style.setProperty("--text-sec", "rgba(255, 255, 255, 0.75)");
-          app.style.setProperty("--glass-bg", "rgba(255, 255, 255, 0.12)");
-          app.style.setProperty("--glass-border", "rgba(255, 255, 255, 0.2)");
-          app.style.setProperty("--compass-n", "#d93035");
-          app.style.setProperty("--compass-s", "#e0d0a0");
+          // 深色主题时设置为黑色背景，或直接使用提取的主色
+          appleStatusBarMeta.content = mainColor;
         }
       }
 
-      // ================== 自动感光算法 ==================
-      function updateAutoTheme() {
-        if (!isAutoThemeActive) return;
+      // 4. 强制触发浏览器更新（针对部分浏览器的缓存问题）
+      document.body.style.backgroundColor = mainColor;
+      document.documentElement.style.backgroundColor = mainColor;
 
-        const date = new Date();
-        // 计算太阳高度角
-        const sunPos = getSunPosition(date, lastKnownLat, lastKnownLng);
-        const altitude = sunPos.altitude * (180 / Math.PI); // 转为度数
-
-        let themeConfig = {};
-
-        // 1. 白天 (太阳高度 > 10度)
-        if (altitude > 10) {
-          // 正午越亮，颜色越蓝白
-          themeConfig = {
-            bg: "linear-gradient(180deg, #2980B9, #6DD5FA, #FFFFFF)",
-            circle: "linear-gradient(135deg, #FFFFFF, #E0EAFC)",
-            glow: "rgba(255, 255, 255, 0.5)",
-            light: false, // 保持白字，因为背景虽亮但顶部是深蓝
-          };
-        }
-        // 2. 日出/日落 (高度 -6度 ~ 10度)
-        else if (altitude > -6) {
-          // 黄金时刻：紫红橙
-          themeConfig = {
-            bg: "linear-gradient(180deg, #351C75, #D76D77, #FFAF7B)",
-            circle: "linear-gradient(135deg, #FF512F, #F09819)",
-            glow: "rgba(255, 81, 47, 0.5)",
-            light: false,
-          };
-        }
-        // 3. 夜晚 (高度 < -6度)
-        else {
-          // 深夜：深蓝黑
-          themeConfig = {
-            bg: "linear-gradient(180deg, #0f0c29, #302b63, #24243e)",
-            circle: "linear-gradient(135deg, #2C5364, #0F2027)",
-            glow: "rgba(48, 43, 99, 0.5)",
-            light: false,
-          };
-        }
-
-        applyThemeStyles(themeConfig);
+      // ========== 原有文本/玻璃效果样式 ==========
+      if (theme.light) {
+        app.style.setProperty("--text-main", "#2d3436");
+        app.style.setProperty("--text-sec", "rgba(45, 52, 54, 0.7)");
+        app.style.setProperty("--glass-bg", "rgba(0,0,0,0.05)");
+        app.style.setProperty("--glass-border", "rgba(0,0,0,0.1)");
+        app.style.setProperty("--compass-n", "#d63031");
+        app.style.setProperty("--compass-s", "#636e72");
+      } else {
+        app.style.setProperty("--text-main", "#ffffff");
+        app.style.setProperty("--text-sec", "rgba(255, 255, 255, 0.75)");
+        app.style.setProperty("--glass-bg", "rgba(255, 255, 255, 0.12)");
+        app.style.setProperty("--glass-border", "rgba(255, 255, 255, 0.2)");
+        app.style.setProperty("--compass-n", "#d93035");
+        app.style.setProperty("--compass-s", "#e0d0a0");
       }
 
-      // 计算太阳位置简易算法
-      function getSunPosition(date, lat, lng) {
-        const PI = Math.PI;
-        const rad = PI / 180;
-        const lw = rad * -lng;
-        const phi = rad * lat;
-        const d = date.getTime() / 86400000.0 - 10957.5; // days since J2000
-
-        const M = (357.5291 + 0.98560028 * d) % 360;
-        const C =
-          1.9148 * Math.sin(M * rad) +
-          0.02 * Math.sin(2 * M * rad) +
-          0.0003 * Math.sin(3 * M * rad);
-        const lambda = (M + C + 180 + 102.9372) % 360;
-        const delta = Math.asin(Math.sin(lambda * rad) * Math.sin(23.44 * rad));
-        const H = ((280.16 + 360.9856235 * d) % 360) - lw;
-
-        const sinAlt =
-          Math.sin(phi) * Math.sin(delta) +
-          Math.cos(phi) * Math.cos(delta) * Math.cos(H * rad);
-        return { altitude: Math.asin(sinAlt) };
-      }
-
-      // ================== GPS ==================
-      let sunCalcDone = false;
-      const smoothData = { alt: null, speed: 0 };
-      const alpha = 0.15;
-
-      function startGPS() {
-        if ("geolocation" in navigator) {
-          navigator.geolocation.watchPosition(
-            (position) => {
-              updateUI(position.coords);
-            },
-            (error) => {
-              console.error("GPS Error", error);
-              elLatLon.textContent = "GPS 信号弱";
-              elGpsStatus.classList.remove("active");
-            },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 },
-          );
-        } else {
-          elLatLon.textContent = "设备不支持 GPS";
+      // ========== 额外：更新 manifest.json 的缓存（可选） ==========
+      // 如果需要动态更新 manifest 中的 theme_color（部分浏览器支持）
+      if ('manifest' in navigator && navigator.manifest) {
+        try {
+          // 注意：这只是内存中修改，不会改变实际文件
+          navigator.manifest.theme_color = mainColor;
+          navigator.manifest.background_color = mainColor;
+        } catch (e) {
+          // 兼容不支持修改的浏览器
+          console.debug("无法更新 manifest 颜色", e);
         }
       }
+    }
+    // ================== 自动感光算法 ==================
+    function updateAutoTheme() {
+      if (!isAutoThemeActive) return;
 
-      function updateUI(coords) {
-        elGpsStatus.classList.add("active");
+      const date = new Date();
+      // 计算太阳高度角
+      const sunPos = getSunPosition(date, lastKnownLat, lastKnownLng);
+      const altitude = sunPos.altitude * (180 / Math.PI); // 转为度数
 
-        // 更新坐标供自动主题使用
-        lastKnownLat = coords.latitude;
-        lastKnownLng = coords.longitude;
-        // 如果开启了自动主题，位置更新时也刷新一下颜色
-        if (isAutoThemeActive) updateAutoTheme();
+      let themeConfig = {};
 
-        const altMeters = coords.altitude;
-        if (altMeters !== null) {
-          if (smoothData.alt === null) smoothData.alt = altMeters;
-          smoothData.alt =
-            smoothData.alt + alpha * (altMeters - smoothData.alt);
-          elAlt.textContent = Math.round(smoothData.alt);
-        } else {
-          elAlt.textContent = "---";
-        }
-
-        const speedMs = coords.speed;
-        if (speedMs !== null && speedMs > 0) {
-          const speedKmh = speedMs * 3.6;
-          smoothData.speed =
-            smoothData.speed + alpha * (speedKmh - smoothData.speed);
-          elSpeed.textContent = Math.round(smoothData.speed);
-        } else {
-          elSpeed.textContent = "0";
-        }
-
-        const lat = coords.latitude.toFixed(4);
-        const lon = coords.longitude.toFixed(4);
-        elLatLon.textContent = `${lat}° N, ${lon}° E`;
-        elAccuracy.textContent = `精度: ±${Math.round(coords.accuracy)} 米`;
-
-        if (!sunCalcDone) {
-          updateSunTimes(coords.latitude, coords.longitude);
-          sunCalcDone = true;
-        }
-      }
-
-      // ================== 日出日落计算 ==================
-      function updateSunTimes(lat, lng) {
-        const times = getSunTimes(new Date(), lat, lng);
-        if (times) {
-          document.getElementById("sunrise-time").textContent = times.sunrise;
-          document.getElementById("sunset-time").textContent = times.sunset;
-        }
-      }
-
-      function getSunTimes(date, lat, lng) {
-        const radians = Math.PI / 180.0;
-        const degrees = 180.0 / Math.PI;
-        const calcJD = (date) => date.getTime() / 86400000.0 + 2440587.5;
-        const calcTimeJulianCent = (jd) => (jd - 2451545.0) / 36525.0;
-        const calcSunTrueLong = (t) => {
-          let l0 = 280.46646 + t * (36000.76983 + t * 0.0003032);
-          while (l0 > 360.0) l0 -= 360.0;
-          while (l0 < 0.0) l0 += 360.0;
-          let m = 357.52911 + t * (35999.05029 - 0.0001537 * t);
-          let c =
-            (1.914602 - t * (0.004817 + 0.000014 * t)) * Math.sin(m * radians) +
-            (0.019993 - 0.000101 * t) * Math.sin(2 * m * radians) +
-            0.000289 * Math.sin(3 * m * radians);
-          return l0 + c;
+      // 1. 白天 (太阳高度 > 10度)
+      if (altitude > 10) {
+        // 正午越亮，颜色越蓝白
+        themeConfig = {
+          bg: "linear-gradient(180deg, #2980B9, #6DD5FA, #FFFFFF)",
+          circle: "linear-gradient(135deg, #FFFFFF, #E0EAFC)",
+          glow: "rgba(255, 255, 255, 0.5)",
+          light: false, // 保持白字，因为背景虽亮但顶部是深蓝
         };
-        const calcSunDeclination = (t) => {
-          let lambda = calcSunTrueLong(t);
-          let epsilon =
-            23.439291 -
-            t * (0.01300416 + t * (0.00000016389 - t * 0.0000005036));
-          let sint = Math.sin(epsilon * radians) * Math.sin(lambda * radians);
-          return Math.asin(sint) * degrees;
+      }
+      // 2. 日出/日落 (高度 -6度 ~ 10度)
+      else if (altitude > -6) {
+        // 黄金时刻：紫红橙
+        themeConfig = {
+          bg: "linear-gradient(180deg, #351C75, #D76D77, #FFAF7B)",
+          circle: "linear-gradient(135deg, #FF512F, #F09819)",
+          glow: "rgba(255, 81, 47, 0.5)",
+          light: false,
         };
-        const calcHourAngle = (lat, solarDec, timeType) => {
-          const latRad = lat * radians;
-          const sdRad = solarDec * radians;
-          const cosHA =
-            (Math.cos(90.833 * radians) - Math.sin(latRad) * Math.sin(sdRad)) /
-            (Math.cos(latRad) * Math.cos(sdRad));
-          if (timeType === "sunrise" && cosHA > 1) return "No Rise";
-          if (timeType === "sunset" && cosHA < -1) return "No Set";
-          return Math.acos(cosHA) * degrees;
-        };
-        const jd = calcJD(date);
-        const t = calcTimeJulianCent(jd);
-        const solarDec = calcSunDeclination(t);
-        const eqTime = (function () {
-          let epsilon =
-            23.439291 -
-            t * (0.01300416 + t * (0.00000016389 - t * 0.0000005036));
-          let l0 = 280.46646 + t * (36000.76983 + t * 0.0003032);
-          let m = 357.52911 + t * (35999.05029 - 0.0001537 * t);
-          let y = Math.tan((epsilon * radians) / 2.0);
-          y *= y;
-          let sin2l0 = Math.sin(2.0 * l0 * radians);
-          let sinm = Math.sin(m * radians);
-          let cos2l0 = Math.cos(2.0 * l0 * radians);
-          let sin4l0 = Math.sin(4.0 * l0 * radians);
-          let sin2m = Math.sin(2.0 * m * radians);
-          return (
-            (y * sin2l0 -
-              2.0 * 0.016708634 * sinm +
-              4.0 * 0.016708634 * y * sinm * cos2l0 -
-              0.5 * y * y * sin4l0 -
-              1.25 * 0.016708634 * 0.016708634 * sin2m) *
-            4.0 *
-            degrees
-          );
-        })();
-        const baseTime = 720 - 4.0 * lng - eqTime;
-        const haRise = calcHourAngle(lat, solarDec, "sunrise");
-        const haSet = calcHourAngle(lat, solarDec, "sunset");
-        if (typeof haRise !== "number" || typeof haSet !== "number")
-          return null;
-        const minToTime = (min) => {
-          let d = new Date(date);
-          d.setUTCHours(0, 0, 0, 0);
-          d.setUTCMinutes(min);
-          return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
-        };
-        return {
-          sunrise: minToTime(baseTime - haRise * 4.0),
-          sunset: minToTime(baseTime + haSet * 4.0),
+      }
+      // 3. 夜晚 (高度 < -6度)
+      else {
+        // 深夜：深蓝黑
+        themeConfig = {
+          bg: "linear-gradient(180deg, #0f0c29, #302b63, #24243e)",
+          circle: "linear-gradient(135deg, #2C5364, #0F2027)",
+          glow: "rgba(48, 43, 99, 0.5)",
+          light: false,
         };
       }
 
-      initThemes();
-      startGPS();
-    </script>
-  </body>
+      applyThemeStyles(themeConfig);
+    }
+
+    // 计算太阳位置简易算法
+    function getSunPosition(date, lat, lng) {
+      const PI = Math.PI;
+      const rad = PI / 180;
+      const lw = rad * -lng;
+      const phi = rad * lat;
+      const d = date.getTime() / 86400000.0 - 10957.5; // days since J2000
+
+      const M = (357.5291 + 0.98560028 * d) % 360;
+      const C =
+        1.9148 * Math.sin(M * rad) +
+        0.02 * Math.sin(2 * M * rad) +
+        0.0003 * Math.sin(3 * M * rad);
+      const lambda = (M + C + 180 + 102.9372) % 360;
+      const delta = Math.asin(Math.sin(lambda * rad) * Math.sin(23.44 * rad));
+      const H = ((280.16 + 360.9856235 * d) % 360) - lw;
+
+      const sinAlt =
+        Math.sin(phi) * Math.sin(delta) +
+        Math.cos(phi) * Math.cos(delta) * Math.cos(H * rad);
+      return { altitude: Math.asin(sinAlt) };
+    }
+
+    // ================== GPS ==================
+    let sunCalcDone = false;
+    const smoothData = { alt: null, speed: 0 };
+    const alpha = 0.15;
+
+    function startGPS() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition(
+          (position) => {
+            updateUI(position.coords);
+          },
+          (error) => {
+            console.error("GPS Error", error);
+            elLatLon.textContent = "GPS 信号弱";
+            elGpsStatus.classList.remove("active");
+          },
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 },
+        );
+      } else {
+        elLatLon.textContent = "设备不支持 GPS";
+      }
+    }
+
+    function updateUI(coords) {
+      elGpsStatus.classList.add("active");
+
+      // 更新坐标供自动主题使用
+      lastKnownLat = coords.latitude;
+      lastKnownLng = coords.longitude;
+      // 如果开启了自动主题，位置更新时也刷新一下颜色
+      if (isAutoThemeActive) updateAutoTheme();
+
+      const altMeters = coords.altitude;
+      if (altMeters !== null) {
+        if (smoothData.alt === null) smoothData.alt = altMeters;
+        smoothData.alt =
+          smoothData.alt + alpha * (altMeters - smoothData.alt);
+        elAlt.textContent = Math.round(smoothData.alt);
+      } else {
+        elAlt.textContent = "---";
+      }
+
+      const speedMs = coords.speed;
+      if (speedMs !== null && speedMs > 0) {
+        const speedKmh = speedMs * 3.6;
+        smoothData.speed =
+          smoothData.speed + alpha * (speedKmh - smoothData.speed);
+        elSpeed.textContent = Math.round(smoothData.speed);
+      } else {
+        elSpeed.textContent = "0";
+      }
+
+      const lat = coords.latitude.toFixed(4);
+      const lon = coords.longitude.toFixed(4);
+      elLatLon.textContent = `${lat}° N, ${lon}° E`;
+      elAccuracy.textContent = `精度: ±${Math.round(coords.accuracy)} 米`;
+
+      if (!sunCalcDone) {
+        updateSunTimes(coords.latitude, coords.longitude);
+        sunCalcDone = true;
+      }
+    }
+
+    // ================== 日出日落计算 ==================
+    function updateSunTimes(lat, lng) {
+      const times = getSunTimes(new Date(), lat, lng);
+      if (times) {
+        document.getElementById("sunrise-time").textContent = times.sunrise;
+        document.getElementById("sunset-time").textContent = times.sunset;
+      }
+    }
+
+    function getSunTimes(date, lat, lng) {
+      const radians = Math.PI / 180.0;
+      const degrees = 180.0 / Math.PI;
+      const calcJD = (date) => date.getTime() / 86400000.0 + 2440587.5;
+      const calcTimeJulianCent = (jd) => (jd - 2451545.0) / 36525.0;
+      const calcSunTrueLong = (t) => {
+        let l0 = 280.46646 + t * (36000.76983 + t * 0.0003032);
+        while (l0 > 360.0) l0 -= 360.0;
+        while (l0 < 0.0) l0 += 360.0;
+        let m = 357.52911 + t * (35999.05029 - 0.0001537 * t);
+        let c =
+          (1.914602 - t * (0.004817 + 0.000014 * t)) * Math.sin(m * radians) +
+          (0.019993 - 0.000101 * t) * Math.sin(2 * m * radians) +
+          0.000289 * Math.sin(3 * m * radians);
+        return l0 + c;
+      };
+      const calcSunDeclination = (t) => {
+        let lambda = calcSunTrueLong(t);
+        let epsilon =
+          23.439291 -
+          t * (0.01300416 + t * (0.00000016389 - t * 0.0000005036));
+        let sint = Math.sin(epsilon * radians) * Math.sin(lambda * radians);
+        return Math.asin(sint) * degrees;
+      };
+      const calcHourAngle = (lat, solarDec, timeType) => {
+        const latRad = lat * radians;
+        const sdRad = solarDec * radians;
+        const cosHA =
+          (Math.cos(90.833 * radians) - Math.sin(latRad) * Math.sin(sdRad)) /
+          (Math.cos(latRad) * Math.cos(sdRad));
+        if (timeType === "sunrise" && cosHA > 1) return "No Rise";
+        if (timeType === "sunset" && cosHA < -1) return "No Set";
+        return Math.acos(cosHA) * degrees;
+      };
+      const jd = calcJD(date);
+      const t = calcTimeJulianCent(jd);
+      const solarDec = calcSunDeclination(t);
+      const eqTime = (function () {
+        let epsilon =
+          23.439291 -
+          t * (0.01300416 + t * (0.00000016389 - t * 0.0000005036));
+        let l0 = 280.46646 + t * (36000.76983 + t * 0.0003032);
+        let m = 357.52911 + t * (35999.05029 - 0.0001537 * t);
+        let y = Math.tan((epsilon * radians) / 2.0);
+        y *= y;
+        let sin2l0 = Math.sin(2.0 * l0 * radians);
+        let sinm = Math.sin(m * radians);
+        let cos2l0 = Math.cos(2.0 * l0 * radians);
+        let sin4l0 = Math.sin(4.0 * l0 * radians);
+        let sin2m = Math.sin(2.0 * m * radians);
+        return (
+          (y * sin2l0 -
+            2.0 * 0.016708634 * sinm +
+            4.0 * 0.016708634 * y * sinm * cos2l0 -
+            0.5 * y * y * sin4l0 -
+            1.25 * 0.016708634 * 0.016708634 * sin2m) *
+          4.0 *
+          degrees
+        );
+      })();
+      const baseTime = 720 - 4.0 * lng - eqTime;
+      const haRise = calcHourAngle(lat, solarDec, "sunrise");
+      const haSet = calcHourAngle(lat, solarDec, "sunset");
+      if (typeof haRise !== "number" || typeof haSet !== "number")
+        return null;
+      const minToTime = (min) => {
+        let d = new Date(date);
+        d.setUTCHours(0, 0, 0, 0);
+        d.setUTCMinutes(min);
+        return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+      };
+      return {
+        sunrise: minToTime(baseTime - haRise * 4.0),
+        sunset: minToTime(baseTime + haSet * 4.0),
+      };
+    }
+
+    initThemes();
+    startGPS();
+  </script>
+</body>
+
 </html>
