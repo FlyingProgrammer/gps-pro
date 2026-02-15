@@ -946,51 +946,48 @@
         }
       }
     }
-    // ================== 自动感光算法 ==================
+
+    // ================== 自动感光算法（强制浅色文字） ==================
     function updateAutoTheme() {
       if (!isAutoThemeActive) return;
 
       const date = new Date();
-      // 计算太阳高度角
       const sunPos = getSunPosition(date, lastKnownLat, lastKnownLng);
       const altitude = sunPos.altitude * (180 / Math.PI); // 转为度数
 
       let themeConfig = {};
 
-      // 1. 白天 (太阳高度 > 10度)
+      // 1. 白天 (太阳高度 > 10度) - 亮背景 → 深色内圈 + 浅色文字
       if (altitude > 10) {
-        // 正午越亮，颜色越蓝白
         themeConfig = {
           bg: "linear-gradient(180deg, #2980B9, #6DD5FA, #FFFFFF)",
-          circle: "linear-gradient(135deg, #FFFFFF, #E0EAFC)",
-          glow: "rgba(255, 255, 255, 0.5)",
-          light: false, // 保持白字，因为背景虽亮但顶部是深蓝
+          // 内圈加深：确保白色文字在上面清晰
+          circle: "linear-gradient(135deg, #404a66, #3B82F6)",
+          glow: "rgba(59, 130, 246, 0.5)",
+          light: false, // 强制用浅色文字（白色）
         };
       }
-      // 2. 日出/日落 (高度 -6度 ~ 10度)
+      // 2. 日出/日落 (高度 -6度 ~ 10度) - 暖背景 → 高饱和内圈 + 浅色文字
       else if (altitude > -6) {
-        // 黄金时刻：紫红橙
         themeConfig = {
           bg: "linear-gradient(180deg, #351C75, #D76D77, #FFAF7B)",
-          circle: "linear-gradient(135deg, #FF512F, #F09819)",
-          glow: "rgba(255, 81, 47, 0.5)",
-          light: false,
+          circle: "linear-gradient(135deg, #FF9500, #FF3A00)",
+          glow: "rgba(255, 81, 47, 0.7)",
+          light: false, // 浅色文字
         };
       }
-      // 3. 夜晚 (高度 < -6度)
+      // 3. 夜晚 (高度 < -6度) - 暗背景 → 亮内圈 + 浅色文字
       else {
-        // 深夜：深蓝黑
         themeConfig = {
           bg: "linear-gradient(180deg, #0f0c29, #302b63, #24243e)",
-          circle: "linear-gradient(135deg, #2C5364, #0F2027)",
-          glow: "rgba(48, 43, 99, 0.5)",
-          light: false,
+          circle: "linear-gradient(135deg, #10B981, #06B6D4)",
+          glow: "rgba(16, 185, 129, 0.6)",
+          light: false, // 浅色文字
         };
       }
 
       applyThemeStyles(themeConfig);
     }
-
     // 计算太阳位置简易算法
     function getSunPosition(date, lat, lng) {
       const PI = Math.PI;
