@@ -558,115 +558,135 @@
     menuBtn.addEventListener("click", toggleDrawer);
     mask.addEventListener("click", closeDrawer);
 
-    // ================== 指南针逻辑 ==================
-    // ================== 指南针逻辑 ==================
+    // ================== 指南针逻辑（专业级优化版） ==================
     const elCompass = document.getElementById("compass");
     const elPermHint = document.getElementById("permHint");
     const gaugeWrapper = document.getElementById("compassWrapper");
-    let isCompassEnabled = false;
-    let lastHeading = 0;
 
+    // 核心状态管理
+    let isCompassEnabled = false;
+    let currentHeading = 0;    // 当前目标角度
+    let targetHeading = 0;     // 传感器原始角度
+    let lastUpdateTime = 0;    // 上次动画时间（用于平滑插值）
+    const smoothFactor = 0.15; // 平滑系数（越小越丝滑，0.1-0.2为宜）
+    const minUpdateInterval = 16; // 最小更新间隔（约60fps）
+
+    // 设备判断
     const isIOS =
       typeof DeviceOrientationEvent !== "undefined" &&
       typeof DeviceOrientationEvent.requestPermission === "function";
 
-    // 修复：iOS 必须用户点击才能申请权限，不能自动申请
+    // 初始化提示
     if (isIOS) {
       elPermHint.textContent = "点击罗盘区域授权指南针";
       elPermHint.classList.add("show");
     }
 
-    // 点击罗盘 → 统一初始化（兼容所有设备）
+    // 点击罗盘触发初始化（iOS必须用户交互）
     gaugeWrapper.addEventListener("click", initCompass);
 
+    // 初始化罗盘
     function initCompass() {
       if (isCompassEnabled) return;
 
+      elPermHint.textContent = "正在启用指南针...";
+      elPermHint.classList.add("show");
+
       if (isIOS) {
-        // iOS 授权流程
+        // iOS 权限申请（必须用户触发）
         DeviceOrientationEvent.requestPermission()
-          .then((res) => {
-            if (res === "granted") {
-              window.addEventListener("deviceorientation", handleOrientation, true);
-              isCompassEnabled = true;
-              elPermHint.classList.remove("show");
+          .then((response) => {
+            if (response === "granted") {
+              startCompassListener();
             } else {
-              elPermHint.textContent = "指南针权限被拒绝";
+              elPermHint.textContent = "需要罗盘权限才能显示方向";
             }
           })
-          .catch((err) => {
-            elPermHint.textContent = "授权失败：" + err.message;
+          .catch((error) => {
+            console.error("指南针权限请求失败:", error);
+            elPermHint.textContent = "指南针初始化失败";
           });
       } else {
-        // 安卓 / 其他设备
-        if (window.DeviceOrientationEvent) {
-          window.addEventListener("deviceorientation", handleOrientation, true);
-          isCompassEnabled = true;
-          elPermHint.classList.remove("show");
-        } else {
-          elPermHint.textContent = "设备不支持指南针";
-        }
+        // 安卓/其他设备直接启动
+        startCompassListener();
       }
     }
 
-    // 修复：指南针角度计算（最稳定算法）
+    // 启动罗盘监听（核心）
+    function startCompassListener() {
+      if (window.DeviceOrientationEvent) {
+        window.addEventListener("deviceorientation", handleOrientation, true);
+        isCompassEnabled = true;
+        elPermHint.classList.remove("show");
+        // 启动平滑动画循环
+        requestAnimationFrame(updateCompassAnimation);
+      } else {
+        elPermHint.textContent = "设备不支持指南针";
+      }
+    }
+
+    // 处理传感器数据（精度优化）
     function handleOrientation(e) {
       if (!isCompassEnabled) return;
 
       let heading = null;
+      const now = performance.now();
 
-      // 优先使用系统罗盘（最准）
+      // 节流：避免高频更新（控制60fps）
+      if (now - lastUpdateTime < minUpdateInterval) return;
+      lastUpdateTime = now;
+
+      // 优先使用系统罗盘（iOS），精度更高
       if (typeof e.webkitCompassHeading === "number") {
         heading = e.webkitCompassHeading;
       }
-      // 备用 alpha 算法
-      else if (typeof e.alpha === "number") {
+      // 安卓使用alpha值，需校准
+      else if (typeof e.alpha === "number" && !isNaN(e.alpha)) {
         heading = 360 - e.alpha;
       }
 
-      if (heading === null) return;
+      // 过滤无效数据
+      if (heading === null || isNaN(heading)) return;
 
+      // 角度归一化（0-360°）
       heading = (heading + 360) % 360;
-      lastHeading = heading;
 
-      requestAnimationFrame(() => {
-        elCompass.style.transform = `rotate(${-lastHeading}deg)`;
-      });
+      // 防抖滤波：只保留有效变化（过滤微小抖动）
+      const angleDiff = Math.abs(heading - targetHeading);
+      const normalizedDiff = angleDiff > 180 ? 360 - angleDiff : angleDiff;
+      if (normalizedDiff > 0.5) { // 忽略小于0.5°的微小变化
+        targetHeading = heading;
+      }
     }
-    // 自动初始化指南针
-    initCompass();
 
-    // 为了确保指南针能够正常工作，添加一个重试机制
-    setTimeout(() => {
-      if (!isCompassEnabled && window.DeviceOrientationEvent) {
-        initCompass();
-      }
-    }, 1000);
+    // 平滑动画更新（解决抖动、动画不平滑）
+    function updateCompassAnimation(timestamp) {
+      if (!isCompassEnabled) return;
 
-    function handleOrientation(e) {
-      let heading = 0;
-      if (e.webkitCompassHeading) {
-        heading = e.webkitCompassHeading;
-      } else if (e.alpha !== null) {
-        heading = 360 - e.alpha;
-      }
+      // 插值计算：当前角度向目标角度靠近（平滑过渡）
+      const diff = targetHeading - currentHeading;
+      const normalizedDiff = diff > 180 ? diff - 360 : (diff < -180 ? diff + 360 : diff);
+      currentHeading += normalizedDiff * smoothFactor;
+      currentHeading = (currentHeading + 360) % 360;
 
-      if (heading < 0) heading += 360;
-      heading = heading % 360;
+      // 应用旋转（带硬件加速）
+      elCompass.style.transform = `rotate(${-currentHeading}deg)`;
+      elCompass.style.transformOrigin = "center center"; // 确保旋转中心正确
+      elCompass.style.willChange = "transform"; // 告诉浏览器优化动画
 
-      let delta = heading - lastHeading;
-      if (delta > 180) delta -= 360;
-      if (delta < -180) delta += 360;
-
-      accumulatedRotation += delta;
-      lastHeading = heading;
-      if (accumulatedRotation < 0) {
-        accumulatedRotation = 360 - accumulatedRotation;
-      }
-      requestAnimationFrame(() => {
-        elCompass.style.transform = `rotate(-${accumulatedRotation}deg)`;
-      });
+      // 循环执行动画
+      requestAnimationFrame(updateCompassAnimation);
     }
+
+    // 容错：页面隐藏时暂停监听，减少性能消耗
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        window.removeEventListener("deviceorientation", handleOrientation);
+      } else if (isCompassEnabled) {
+        window.addEventListener("deviceorientation", handleOrientation, true);
+      }
+    });
+
 
     // ================== 主题配置 ==================
     const themes = [
