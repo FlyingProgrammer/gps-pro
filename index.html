@@ -276,7 +276,7 @@
         flex-direction: column;
         gap: 12px;
         align-items: center;
-        margin-bottom: 40px;
+        margin-bottom: 80px;
         z-index: 1;
       }
       .sun-row {
@@ -313,6 +313,7 @@
         transform: translateY(110%);
         transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
         box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+        opacity: 0;
       }
       .theme-drawer.active {
         transform: translateY(0);
@@ -411,16 +412,7 @@
       .overlay-mask.active {
         display: block;
       }
-      .home-indicator {
-        position: absolute;
-        bottom: 8px;
-        width: 135px;
-        height: 5px;
-        background-color: var(--text-sec);
-        border-radius: 10px;
-        opacity: 0.5;
-        z-index: 10;
-      }
+   
 
       @keyframes breathe {
         0%,
@@ -505,8 +497,6 @@
         </div>
         <div class="theme-scroll" id="themeContainer"></div>
       </div>
-
-      <div class="home-indicator"></div>
     </div>
 
     <script>
