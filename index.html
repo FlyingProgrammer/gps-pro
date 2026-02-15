@@ -559,42 +559,46 @@
     mask.addEventListener("click", closeDrawer);
 
     // ================== 指南针逻辑 ==================
+    // ================== 指南针逻辑 ==================
     const elCompass = document.getElementById("compass");
     const elPermHint = document.getElementById("permHint");
+    const gaugeWrapper = document.getElementById("compassWrapper");
     let isCompassEnabled = false;
-    let accumulatedRotation = 0;
     let lastHeading = 0;
 
     const isIOS =
       typeof DeviceOrientationEvent !== "undefined" &&
       typeof DeviceOrientationEvent.requestPermission === "function";
-    if (isIOS) elPermHint.classList.add("show");
+
+    // 修复：iOS 必须用户点击才能申请权限，不能自动申请
+    if (isIOS) {
+      elPermHint.textContent = "点击罗盘区域授权指南针";
+      elPermHint.classList.add("show");
+    }
+
+    // 点击罗盘 → 统一初始化（兼容所有设备）
+    gaugeWrapper.addEventListener("click", initCompass);
 
     function initCompass() {
-      elPermHint.textContent = "正在启用指南针...";
-      elPermHint.classList.add("show");
+      if (isCompassEnabled) return;
 
-      if (isIOS && !isCompassEnabled) {
+      if (isIOS) {
+        // iOS 授权流程
         DeviceOrientationEvent.requestPermission()
-          .then((response) => {
-            if (response === "granted") {
-              window.addEventListener(
-                "deviceorientation",
-                handleOrientation,
-                true,
-              );
+          .then((res) => {
+            if (res === "granted") {
+              window.addEventListener("deviceorientation", handleOrientation, true);
               isCompassEnabled = true;
               elPermHint.classList.remove("show");
             } else {
-              elPermHint.textContent = "需要罗盘权限才能显示方向";
+              elPermHint.textContent = "指南针权限被拒绝";
             }
           })
-          .catch((error) => {
-            console.error("指南针权限请求失败:", error);
-            elPermHint.textContent = "指南针初始化失败";
+          .catch((err) => {
+            elPermHint.textContent = "授权失败：" + err.message;
           });
-      } else if (!isIOS) {
-        // 非 iOS 设备直接启用
+      } else {
+        // 安卓 / 其他设备
         if (window.DeviceOrientationEvent) {
           window.addEventListener("deviceorientation", handleOrientation, true);
           isCompassEnabled = true;
@@ -605,6 +609,30 @@
       }
     }
 
+    // 修复：指南针角度计算（最稳定算法）
+    function handleOrientation(e) {
+      if (!isCompassEnabled) return;
+
+      let heading = null;
+
+      // 优先使用系统罗盘（最准）
+      if (typeof e.webkitCompassHeading === "number") {
+        heading = e.webkitCompassHeading;
+      }
+      // 备用 alpha 算法
+      else if (typeof e.alpha === "number") {
+        heading = 360 - e.alpha;
+      }
+
+      if (heading === null) return;
+
+      heading = (heading + 360) % 360;
+      lastHeading = heading;
+
+      requestAnimationFrame(() => {
+        elCompass.style.transform = `rotate(${-lastHeading}deg)`;
+      });
+    }
     // 自动初始化指南针
     initCompass();
 
